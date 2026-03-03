@@ -2,71 +2,20 @@ import streamlit as st
 import google.generativeai as genai
 from rag_utils import load_documents, create_faiss_index, search
 from PIL import Image
+import os
 
-# Sidebar for Configuration
-with st.sidebar:
-    st.header("⚙️ Configuration")
-    user_api_key = st.text_input("Enter Gemini API Key", type="password", help="Get your key from https://aistudio.google.com/")
-    st.info("💡 If you are on Streamlit Cloud, you can also set this in the 'Secrets' dashboard to save it permanently.")
+# 1. PAGE CONFIG (MUST BE FIRST)
+st.set_page_config(page_title="Election Voice Chatbot", layout="centered", page_icon="🗳️")
 
-# Determine which API key to use
-API_KEY = user_api_key if user_api_key else st.secrets.get("GEMINI_API_KEY")
-
-if not API_KEY:
-    st.warning("⚠️ Please enter your Gemini API Key in the sidebar to start.")
-    st.stop()
-
-# Basic validation (length check)
-if len(API_KEY) < 30:
-    st.error("❌ The API Key appears too short. Please double-check it.")
-    st.stop()
-
-genai.configure(api_key=API_KEY)
-
-# Model Selection and Discovery
-def get_available_models():
-    try:
-        return [m.name.replace("models/", "") for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
-    except Exception as e:
-        st.error(f"Could not list models: {e}")
-        return []
-
-available_models = get_available_models()
-
-# Try to default to 1.5-flash, fallback to pro, or the first available
-default_model = "gemini-1.5-flash"
-if default_model not in available_models:
-    if "gemini-pro" in available_models:
-        default_model = "gemini-pro"
-    elif available_models:
-        default_model = available_models[0]
-
-with st.sidebar:
-    if available_models:
-        selected_model = st.selectbox("Select Model", available_models, index=available_models.index(default_model) if default_model in available_models else 0)
-    else:
-        st.error("No supported models found for this API Key.")
-        st.stop()
-
-# Initialize the selected model
-model = genai.GenerativeModel(selected_model)
-
-docs = load_documents("data/election_knowledge.txt")
-index, embeddings = create_faiss_index(docs)
-
-st.set_page_config(page_title="Election Voice Chatbot", layout="centered")
-
-# Custom CSS for Premium Mobile Look
+# 2. CUSTOM CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    
     html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Inter', sans-serif;
         background-color: #0f172a;
         color: #f8fafc;
     }
-    
     .stButton > button {
         width: 100%;
         border-radius: 12px;
@@ -78,12 +27,6 @@ st.markdown("""
         border: none;
         transition: all 0.3s ease;
     }
-    
-    .stMarkdown, .stImage {
-        display: flex;
-        justify-content: center;
-    }
-    
     h1 {
         text-align: center;
         font-weight: 700;
@@ -94,38 +37,102 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🗳️ Election Assistant")
+# 3. SIDEBAR CONFIGURATION
+with st.sidebar:
+    st.header("⚙️ Configuration")
+    user_api_key = st.text_input("Enter Gemini API Key", type="password")
+    
+    API_KEY = user_api_key if user_api_key else st.secrets.get("GEMINI_API_KEY")
+    
+    if not API_KEY:
+        st.warning("⚠️ Please enter your Gemini API Key to start.")
+        st.stop()
+    
+    genai.configure(api_key=API_KEY)
 
-main_container = st.container()
-with main_container:
-    response_area = st.empty()
-    symbol_area = st.empty()
+    # Model Discovery
+    @st.cache_data(show_spinner=False)
+    def get_available_models():
+        try:
+            return [m.name.replace("models/", "") for m in genai.list_models() 
+                    if "generateContent" in m.supported_generation_methods]
+        except:
+            return ["gemini-1.5-flash", "gemini-1.5-pro"]
+
+    available_models = get_available_models()
+    selected_model_name = st.selectbox("Select Model", available_models, index=0)
+    model = genai.GenerativeModel(selected_model_name)
+
+# 4. RAG INITIALIZATION (CACHED)
+@st.cache_resource
+def init_rag():
+    try:
+        docs = load_documents("data/election_knowledge.txt")
+        index, _ = create_faiss_index(docs)
+        return docs, index
+    except Exception as e:
+        st.error(f"Error loading RAG data: {e}")
+        return [], None
+
+docs, index = init_rag()
+
+# 5. CORE FUNCTIONS
+def show_party_symbol(text, container):
+    party_map = {
+        "BJP": ("bjp.png", "BJP Symbol - Lotus"),
+        "Congress": ("congress.png", "Congress Symbol - Hand"),
+        "DMK": ("dmk.png", "DMK Symbol - Rising Sun"),
+        "ADMK": ("admk.png", "ADMK Symbol - Two Leaves"),
+        "TVK": ("tvk.png", "TVK Symbol - Two Elephants"),
+        "NTK": ("ntk.png", "NTK Symbol - Microphone")
+    }
+    
+    for keyword, (img_file, caption) in party_map.items():
+        if keyword.lower() in text.lower():
+            path = f"symbols/{img_file}"
+            if os.path.exists(path):
+                img = Image.open(path)
+                container.image(img, caption=caption, width=150)
+                return
+    container.empty()
 
 def generate_response(user_input):
-    """Handles both text and audio input."""
     system_prompt = """
-You are an Election Information Assistant.
-STRICT RULES:
-- Answer ONLY election related topics (parties, leaders, symbols, process, dates).
-- No opinions, comparisons, or bias.
-- If the question is NOT election-related, reply exactly: I answer only election related questions.
-"""
+    You are an Election Information Assistant. 
+    STRICT RULES:
+    - Answer ONLY election related topics (parties, leaders, symbols, process, dates).
+    - No opinions, comparisons, or bias.
+    - If the question is NOT election-related, reply exactly: "I answer only election related questions."
+    """
     
-    # RAG Context (using a placeholder string for search query if audio is used)
-    # Note: For pure audio, we can optionally transcribe or just use general context
-    search_query = user_input if isinstance(user_input, str) else "election information"
-    context = search(search_query, docs, index)
+    # Handle Audio transcription for better RAG context
+    search_query = user_input
+    if not isinstance(user_input, str):
+        # Quick transcription using Gemini to get search terms
+        try:
+            transcription_model = genai.GenerativeModel("gemini-1.5-flash")
+            trans_resp = transcription_model.generate_content([
+                "Transcribe this audio briefly to use as a search query:",
+                {"mime_type": "audio/wav", "data": user_input.getvalue()}
+            ])
+            search_query = trans_resp.text
+        except:
+            search_query = "election"
+
+    # Search RAG
+    context = ""
+    if index:
+        context = search(search_query, docs, index)
 
     prompt_parts = [
         system_prompt,
         f"Context:\n{context}",
         "User Question:"
     ]
-    
+
     if isinstance(user_input, str):
         prompt_parts.append(user_input)
     else:
-        # User input is audio bytes/file
         prompt_parts.append({
             "mime_type": "audio/wav",
             "data": user_input.getvalue()
@@ -135,57 +142,28 @@ STRICT RULES:
         response = model.generate_content(prompt_parts)
         return response.text
     except Exception as e:
-        error_msg = str(e)
-        if "API_KEY_INVALID" in error_msg:
-            return """
-**❌ API Key Invalid**
-The API key being used is not recognized by Google. 
+        return f"Error: {str(e)}"
 
-**If you are on Streamlit Cloud:**
-1. Go to your **Streamlit Dashboard**.
-2. Click on **Manage App** (bottom right).
-3. Go to **Settings > Secrets**.
-4. Ensure `GEMINI_API_KEY` is set correctly there.
-5. Save and reboot the app.
+# 6. UI LAYOUT
+st.title("🗳️ Election Assistant")
 
-**If you are local:**
-Check your `.streamlit/secrets.toml` file for typos.
-"""
-        return f"Error generating response: {error_msg}"
+# Use columns or containers for better response positioning
+response_container = st.container()
+symbol_container = st.container()
 
-def show_party_symbol(text):
-    party_map = {
-        "BJP": ("bjp.png", "BJP Symbol - Lotus"),
-        "Congress": ("congress.png", "Congress Symbol - Hand"),
-        "DMK": ("dmk.png", "DMK Symbol - Rising Sun"),
-        "ADMK": ("admk.png", "ADMK Symbol - Two Leaves"),
-        "TVK": ("tvk.png", "TVK Symbol - Two Elephants"),
-        "NTK": ("ntk.png", "NTK Symbol - Microphone")
-    }
-
-    for keyword, (img_file, caption) in party_map.items():
-        if keyword.lower() in text.lower():
-            try:
-                img = Image.open(f"symbols/{img_file}")
-                symbol_area.image(img, caption=caption, width=150)
-                return
-            except:
-                continue
-    symbol_area.empty()
-
-# Multi-Mode Input: Audio and Text Chat
+# 7. INPUT HANDLING
 audio_value = st.audio_input("🎤 Record your question")
 text_value = st.chat_input("⌨️ Or type your question here...")
 
-# Process either input
 user_input = audio_value or text_value
 
 if user_input:
-    # Use a status message while thinking
-    with st.status("🧠 Thinking...", expanded=False):
+    with st.status("🧠 Processing...", expanded=False) as status:
         ai_response = generate_response(user_input)
+        status.update(label="✅ Ready!", state="complete", expanded=False)
     
-    response_area.markdown(f"### 🤖 AI Response:\n{ai_response}")
-    show_party_symbol(ai_response)
-
-
+    with response_container:
+        st.chat_message("assistant").markdown(ai_response)
+    
+    with symbol_container:
+        show_party_symbol(ai_response, st)
