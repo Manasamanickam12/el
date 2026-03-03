@@ -4,10 +4,14 @@ from rag_utils import load_documents, create_faiss_index, search
 from PIL import Image
 
 # Fetch API Key from Streamlit Secrets
-API_KEY = "AIzaSyAzGYdqYrl7TQbsrEjiMilyafG-ETnlxyk"
+API_KEY = st.secrets.get("GEMINI_API_KEY")
+if not API_KEY:
+    st.error("Missing Gemini API Key. Please add it to .streamlit/secrets.toml or Streamlit Cloud Secrets.")
+    st.stop()
+
 genai.configure(api_key=API_KEY)
 
-model = genai.GenerativeModel("gemini-flash-latest")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 docs = load_documents("data/election_knowledge.txt")
 index, embeddings = create_faiss_index(docs)
@@ -89,8 +93,11 @@ STRICT RULES:
             "data": user_input.getvalue()
         })
 
-    response = model.generate_content(prompt_parts)
-    return response.text
+    try:
+        response = model.generate_content(prompt_parts)
+        return response.text
+    except Exception as e:
+        return f"Error generating response: {str(e)}"
 
 def show_party_symbol(text):
     party_map = {
