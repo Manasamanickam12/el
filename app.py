@@ -3,15 +3,22 @@ import google.generativeai as genai
 from rag_utils import load_documents, create_faiss_index, search
 from PIL import Image
 
-# Fetch API Key from Streamlit Secrets or Environment Variables
-API_KEY = st.secrets.get("GEMINI_API_KEY")
+# Sidebar for Configuration
+with st.sidebar:
+    st.header("⚙️ Configuration")
+    user_api_key = st.text_input("Enter Gemini API Key", type="password", help="Get your key from https://aistudio.google.com/")
+    st.info("💡 If you are on Streamlit Cloud, you can also set this in the 'Secrets' dashboard to save it permanently.")
+
+# Determine which API key to use
+API_KEY = user_api_key if user_api_key else st.secrets.get("GEMINI_API_KEY")
 
 if not API_KEY:
-    st.error("Missing GEMINI_API_KEY. Please add it to .streamlit/secrets.toml or Streamlit Cloud Secrets.")
+    st.warning("⚠️ Please enter your Gemini API Key in the sidebar to start.")
     st.stop()
+
 # Basic validation (length check)
 if len(API_KEY) < 30:
-    st.error("The API Key appears too short. Please double-check it in Google AI Studio.")
+    st.error("❌ The API Key appears too short. Please double-check it.")
     st.stop()
 
 genai.configure(api_key=API_KEY)
@@ -103,7 +110,23 @@ STRICT RULES:
         response = model.generate_content(prompt_parts)
         return response.text
     except Exception as e:
-        return f"Error generating response: {str(e)}"
+        error_msg = str(e)
+        if "API_KEY_INVALID" in error_msg:
+            return """
+**❌ API Key Invalid**
+The API key being used is not recognized by Google. 
+
+**If you are on Streamlit Cloud:**
+1. Go to your **Streamlit Dashboard**.
+2. Click on **Manage App** (bottom right).
+3. Go to **Settings > Secrets**.
+4. Ensure `GEMINI_API_KEY` is set correctly there.
+5. Save and reboot the app.
+
+**If you are local:**
+Check your `.streamlit/secrets.toml` file for typos.
+"""
+        return f"Error generating response: {error_msg}"
 
 def show_party_symbol(text):
     party_map = {
