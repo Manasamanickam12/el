@@ -23,8 +23,20 @@ if len(API_KEY) < 30:
 
 genai.configure(api_key=API_KEY)
 
-# Use Gemini 1.5 Flash
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Use Gemini Pro (Better compatibility for older library versions)
+try:
+    model = genai.GenerativeModel("gemini-pro")
+except Exception as e:
+    st.error(f"Failed to initialize gemini-pro: {e}")
+    st.stop()
+
+# Helper to debug model names if needed
+if "DEBUG_MODELS" in st.query_params:
+    try:
+        available_models = [m.name for m in genai.list_models()]
+        st.info(f"Available models: {available_models}")
+    except Exception as e:
+        st.error(f"Could not list models: {e}")
 
 docs = load_documents("data/election_knowledge.txt")
 index, embeddings = create_faiss_index(docs)
