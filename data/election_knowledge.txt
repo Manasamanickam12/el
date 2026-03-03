@@ -1,7 +1,20 @@
-The Bharatiya Janata Party (BJP) symbol is the lotus.
-The Indian National Congress symbol is the hand.
-India conducts general elections every 5 years.
-The Election Commission of India conducts elections.
-Voting in India uses Electronic Voting Machines (EVM).
-Lok Sabha elections elect Members of Parliament.
-Rajya Sabha members are indirectly elected.
+The Bharatiya Janata Party (BJP) symbol is the lotus. Its key leader is Narendra Modi.
+The Indian National Congress (INC) symbol is the hand. Its key leader is Mallikarjun Kharge.
+The Dravida Munnetra Kazhagam (DMK) symbol is the Rising Sun. Its key leader is M.K. Stalin.
+The All India Anna Dravida Munnetra Kazhagam (ADMK or AIADMK) symbol is the Two Leaves. Its key leader is Edappadi K. Palaniswami.
+The Tamilaga Vettri Kazhagam (TVK) is a new party founded by actor Vijay.
+The Naam Tamilar Katchi (NTK) symbol is the Gavel (Microphone was previously used). Its leader is Seeman.
+India conducts general elections (Lok Sabha) every 5 years to elect the Prime Minister.
+The Election Commission of India (ECI) is responsible for conducting fair elections.
+Voting in India is done using Electronic Voting Machines (EVM) and VVPAT.
+To vote in India, a person must be at least 18 years old and have a Voter ID.
+State Assembly elections are held to elect the Chief Minister of a state.
+The model code of conduct is a set of guidelines issued by the ECI for political parties and candidates.
+The total number of Lok Sabha seats is 543.
+The majority mark to form a government at the center is 272 seats.
+General Elections in India are a massive democratic process involving millions of voters.
+Political parties use symbols to help illiterate voters identify them on the ballot.
+Candidates must file nomination papers and declare their assets before contesting.
+Campaigning usually stops 48 hours before the voting begins (silence period).
+Counting of votes is done on a specific day assigned by the Election Commission.
+The results are declared official after certificates are issued to the winning candidates.

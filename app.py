@@ -97,22 +97,21 @@ def show_party_symbol(text, container):
     container.empty()
 
 def generate_response(user_input):
-    system_prompt = """
-    You are an Election Information Assistant. 
-    STRICT RULES:
-    - Answer ONLY election related topics (parties, leaders, symbols, process, dates).
-    - No opinions, comparisons, or bias.
-    - If the question is NOT election-related, reply exactly: "I answer only election related questions."
-    """
+    system_prompt = """You are an Election Information Assistant. 
+STRICT RULES:
+- Answer ONLY election related topics (parties, leaders, symbols, process, dates).
+- No opinions, comparisons, or bias.
+- If the question is NOT election-related, reply exactly: "I answer only election related questions." """
     
     # Handle Audio transcription for better RAG context
-    search_query = user_input
-    if not isinstance(user_input, str):
+    search_query = ""
+    if isinstance(user_input, str):
+        search_query = user_input
+    else:
         # Quick transcription using Gemini to get search terms
         try:
-            transcription_model = genai.GenerativeModel("gemini-1.5-flash")
-            trans_resp = transcription_model.generate_content([
-                "Transcribe this audio briefly to use as a search query:",
+            trans_resp = model.generate_content([
+                "Extract the core election-related search query from this audio briefly:",
                 {"mime_type": "audio/wav", "data": user_input.getvalue()}
             ])
             search_query = trans_resp.text
@@ -122,6 +121,8 @@ def generate_response(user_input):
     # Search RAG
     context = ""
     if index:
+        # Show what we're searching for in the status
+        st.write(f"🔍 Searching context for: `{search_query}`")
         context = search(search_query, docs, index)
 
     prompt_parts = [
