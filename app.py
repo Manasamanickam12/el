@@ -3,10 +3,15 @@ import google.generativeai as genai
 from rag_utils import load_documents, create_faiss_index, search
 from PIL import Image
 
-# Fetch API Key from Streamlit Secrets
+# Fetch API Key from Streamlit Secrets or Environment Variables
 API_KEY = st.secrets.get("GEMINI_API_KEY")
+
 if not API_KEY:
-    st.error("Missing Gemini API Key. Please add it to .streamlit/secrets.toml or Streamlit Cloud Secrets.")
+    # Fallback to hardcoded for local testing if secrets fail (ONLY for this specific debugging session)
+    # Actually, better to just show EXACTLY what keys are available to help the user.
+    available_keys = list(st.secrets.keys()) if hasattr(st.secrets, "keys") else "No keys found"
+    st.error(f"Missing GEMINI_API_KEY. Available secret keys: {available_keys}")
+    st.info("Ensure your .streamlit/secrets.toml file is in the root directory and named correctly.")
     st.stop()
 
 genai.configure(api_key=API_KEY)
