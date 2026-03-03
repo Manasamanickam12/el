@@ -9,21 +9,15 @@ API_KEY = st.secrets.get("GEMINI_API_KEY")
 if not API_KEY:
     st.error("Missing GEMINI_API_KEY. Please add it to .streamlit/secrets.toml or Streamlit Cloud Secrets.")
     st.stop()
+# Basic validation (length check)
+if len(API_KEY) < 30:
+    st.error("The API Key appears too short. Please double-check it in Google AI Studio.")
+    st.stop()
 
 genai.configure(api_key=API_KEY)
 
-# Use Gemini Pro (more likely to be supported in older v1beta environments)
-try:
-    model = genai.GenerativeModel("gemini-pro")
-except Exception as e:
-    st.error(f"Failed to initialize gemini-pro: {e}")
-    # List available models to help debugging
-    try:
-        models = [m.name for m in genai.list_models()]
-        st.info(f"Available models: {models}")
-    except:
-        pass
-    st.stop()
+# Use Gemini 1.5 Flash
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 docs = load_documents("data/election_knowledge.txt")
 index, embeddings = create_faiss_index(docs)
