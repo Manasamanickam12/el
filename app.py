@@ -95,22 +95,16 @@ def recognize_speech():
         return None
 
 def speak_text(text):
+    filename = "response.mp3"
     tts = gTTS(text=text, lang='en')
-    tts.save("response.mp3")
+    tts.save(filename)
     
-    with open("response.mp3", "rb") as f:
-        audio_bytes = f.read()
-    
-    audio_base64 = base64.b64encode(audio_bytes).decode()
-    audio_html = f"""
-        <audio autoplay="true">
-            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-        </audio>
-    """
-    st.markdown(audio_html, unsafe_allow_html=True)
-    
-    # Also show a visible player for accessibility
-    st.audio(audio_bytes, format="audio/mp3")
+    # Show the audio player
+    with open(filename, "rb") as audio_file:
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+
+    # Cleanup optional: os.remove(filename)
 
 def generate_response(user_query):
 
