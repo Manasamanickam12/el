@@ -99,7 +99,7 @@ def generate_ai_response(user_query):
 
 def show_party_symbol(text):
     party_map = {
-        "BJP": "bjp.png", "Congress": "congress.png", "DMK": "dmk.png", "ADMK": "admk.png", "TVK": "tvk.png", "NTK": "ntk.png"
+        "BJP": "bjp.png", "Congress": "congress.png","ADMK": "admk.png", "DMK": "dmk.png" , "TVK": "tvk.png", "NTK": "ntk.png"
     }
     for party, img_file in party_map.items():
         if party in text:
