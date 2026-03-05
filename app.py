@@ -1,7 +1,9 @@
 import streamlit as st
 import google.generativeai as genai
 import speech_recognition as sr
-import pyttsx3
+from gtts import gTTS
+import os
+import base64
 from rag_utils import load_documents, create_faiss_index, search
 from PIL import Image
 
@@ -93,9 +95,22 @@ def recognize_speech():
         return None
 
 def speak_text(text):
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
+    tts = gTTS(text=text, lang='en')
+    tts.save("response.mp3")
+    
+    with open("response.mp3", "rb") as f:
+        audio_bytes = f.read()
+    
+    audio_base64 = base64.b64encode(audio_bytes).decode()
+    audio_html = f"""
+        <audio autoplay="true">
+            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+        </audio>
+    """
+    st.markdown(audio_html, unsafe_allow_html=True)
+    
+    # Also show a visible player for accessibility
+    st.audio(audio_bytes, format="audio/mp3")
 
 def generate_response(user_query):
 

@@ -3,6 +3,6 @@ google-generativeai
 faiss-cpu
 sentence-transformers
 speechrecognition
-pyttsx3
+gtts
 pyaudio
 Pillow
